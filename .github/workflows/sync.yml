@@ -1,0 +1,41 @@
+name: 🔄 Sync Instagram Feed
+
+on:
+  # Ejecutar cada 3 horas automáticamente
+  schedule:
+    - cron: '0 */3 * * *'
+  # Permitir ejecución manual desde GitHub
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 📸 Sync Instagram posts from Apify
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: node scripts/sync-instagram.mjs
+
+      - name: 📤 Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ images/
+          if git diff --staged --quiet; then
+            echo "✅ No hay cambios nuevos"
+          else
+            git commit -m "🔄 Auto-sync Instagram $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+            echo "✅ Posts actualizados y publicados"
+          fi
